@@ -1,3 +1,7 @@
+require("dotenv").config();
+
+const Person = require("./models/person.js");
+
 const express = require("express");
 const morgan = require("morgan");
 const app = express();
@@ -39,7 +43,9 @@ app.get("/", (req, res) => {
 });
 
 app.get("/api/persons", (req, res) => {
-  res.json(persons);
+  Person.find({}).then((persons) => {
+    res.json(persons);
+  });
 });
 
 app.get("/info", (req, res) => {
@@ -55,13 +61,11 @@ app.get("/info", (req, res) => {
 });
 
 app.get("/api/persons/:id", (req, res) => {
-  const id = req.params.id;
-  const person = persons.find((person) => person.id == id);
-  if (person) {
-    res.json(person);
-  } else {
-    res.status(404).end();
-  }
+  Person.findById(req.params.id)
+    .then((person) => {
+      res.json(person);
+    })
+    .catch(() => res.status(404).end());
 });
 
 app.delete("/api/persons/:id", (req, res) => {
@@ -81,21 +85,22 @@ app.post("/api/persons", (req, res) => {
     });
   }
 
-  if (persons.find((person) => person.name == body.name)) {
-    return res.status(400).json({
-      error: `${body.name}'s info already exists`,
-    });
-  }
+  // if (persons.find((person) => person.name == body.name)) {
+  //   return res.status(400).json({
+  //     error: `${body.name}'s info already exists`,
+  //   });
+  // }
 
-  const person = {
+  const person = new Person({
     name: body.name,
     number: String(body.number),
     id: String(generateId()),
-  };
+  });
 
-  persons = persons.concat(person);
-
-  res.json(person);
+  person
+    .save()
+    .then((savedPerson) => res.json(savedPerson))
+    .catch(() => console.log("Save failed!"));
 });
 
 const PORT = process.env.PORT || 3001;
